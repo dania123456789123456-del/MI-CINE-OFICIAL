@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CinePlay IPTV</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para los íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- HLS.js para reproducir listas m3u8 (múltiples calidades) -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        brand: '#1a0b2e',
+                        accent: '#a855f7',
+                        dark: '#0B001A'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #0B001A; color: white; overflow: hidden; }
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #a855f7; border-radius: 10px; }
+        
+        .glass-panel {
+            background: rgba(26, 11, 46, 0.7);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .poster-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .poster-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            z-index: 10;
+        }
+
+        .layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            opacity: 0; pointer-events: none; transform: scale(0.98);
+            z-index: 0;
+        }
+        .layer.active {
+            opacity: 1; pointer-events: auto; transform: scale(1);
+            z-index: 10;
+        }
+
+        /* Reproductor estilos */
+        #video-container { position: relative; width: 100%; height: 100%; background: black; }
+        video { width: 100%; height: 100%; }
+        /* Clases para forzar llenado de pantalla o mantener aspecto original */
+        .video-cover { object-fit: cover; } 
+        .video-contain { object-fit: contain; }
+
+        .player-controls {
+            position: absolute; bottom: 0; width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #video-container:hover .player-controls, #video-container.touch .player-controls { opacity: 1; }
+        
+        /* Backdrop gradient para el detalle tipo Netflix */
+        .details-gradient {
+            background: linear-gradient(to top, #0B001A 0%, rgba(11,0,26,0.9) 40%, transparent 100%);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CAPA 1: LOGIN -->
+    <div id="layer-login" class="layer active bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070&auto=format&fit=crop');">
+        <div class="absolute inset-0 bg-black/70 flex items-center justify-center p-4">
+            <div class="glass-panel p-8 rounded-2xl w-full max-w-md text-center border border-white/10 shadow-2xl">
+                <i class="fa-solid fa-play text-5xl text-accent mb-4 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]"></i>
+                <h1 class="text-3xl font-bold mb-6 text-white tracking-wider">Cine<span class="text-accent">Play</span></h1>
+                <input type="text" placeholder="Usuario" class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 mb-4 text-white focus:outline-none focus:border-accent transition">
+                <input type="password" placeholder="Contraseña" class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 mb-6 text-white focus:outline-none focus:border-accent transition">
+                <button onclick="login()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                    Ingresar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAPA 2: PANEL PRINCIPAL -->
+    <div id="layer-main" class="layer flex flex-col md:flex-row bg-gradient-to-br from-[#120024] to-[#0B001A]">
+        <!-- Menú Lateral -->
+        <div class="glass-panel w-full md:w-64 flex-shrink-0 flex flex-row md:flex-col p-4 md:h-full z-20">
+            <div class="flex items-center gap-3 mb-0 md:mb-8 text-xl font-bold w-1/2 md:w-full">
+                <i class="fa-solid fa-play text-accent"></i> CinePlay
+            </div>
+            <nav class="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible w-1/2 md:w-full justify-end md:justify-start">
+                <button onclick="setCategory('movies')" id="btn-movies" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 bg-white/10 text-white font-semibold transition">
+                    <i class="fa-solid fa-film w-5"></i> <span class="hidden md:inline">Películas</span>
+                </button>
+                <button onclick="setCategory('series')" id="btn-series" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-gray-400 hover:bg-white/5 hover:text-white transition">
+                    <i class="fa-solid fa-tv w-5"></i> <span class="hidden md:inline">Series</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Contenido -->
+        <div class="flex-1 p-6 overflow-y-auto h-full">
+            <div class="flex justify-between items-center mb-8">
+                <h2 id="category-title" class="text-3xl font-bold">Películas Recomendadas</h2>
+                <div class="relative hidden sm:block">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" placeholder="Buscar..." class="bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-2 focus:outline-none focus:border-accent">
+                </div>
+            </div>
+            
+            <!-- Grid de Portadas -->
+            <div id="content-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 pb-20 md:pb-0">
+                <!-- Se llena con JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CAPA 3: DETALLES (TIPO NETFLIX) -->
+    <div id="layer-details" class="layer bg-[#0B001A] z-30 flex flex-col overflow-y-auto">
+        <button onclick="closeDetails()" class="absolute top-4 left-4 z-50 bg-black/50 hover:bg-accent w-10 h-10 rounded-full flex items-center justify-center transition border border-white/20 backdrop-blur-md">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
+
+        <div class="relative w-full h-[50vh] md:h-[70vh] flex-shrink-0">
+            <img id="detail-backdrop" src="" alt="Backdrop" class="w-full h-full object-cover object-top">
+            <div class="absolute inset-0 details-gradient flex flex-col justify-end p-6 md:p-12">
+                <h1 id="detail-title" class="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg text-white"></h1>
+                <div class="flex items-center gap-4 text-sm text-gray-300 mb-4 font-semibold">
+                    <span id="detail-year" class="bg-white/20 px-2 py-1 rounded"></span>
+                    <span id="detail-rating" class="text-green-400"><i class="fa-solid fa-star"></i> </span>
+                </div>
+                <p id="detail-synopsis" class="text-gray-200 max-w-3xl text-sm md:text-lg mb-6 line-clamp-3 md:line-clamp-none drop-shadow-md"></p>
+                
+                <div class="flex gap-4">
+                    <button id="btn-play-main" class="bg-white text-black px-6 py-3 rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-2 transform hover:scale-105">
+                        <i class="fa-solid fa-play"></i> Reproducir
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carrusel de Capítulos (Solo Series) -->
+        <div id="episodes-container" class="hidden p-6 md:p-12 -mt-10 relative z-20">
+            <h3 class="text-2xl font-bold mb-4">Episodios</h3>
+            <div id="episodes-list" class="flex gap-4 overflow-x-auto pb-4 snap-x">
+                <!-- Se llena con JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CAPA 4: REPRODUCTOR DE VIDEO -->
+    <div id="layer-player" class="layer bg-black z-50">
+        <div id="video-container">
+            <button onclick="closePlayer()" class="absolute top-4 left-4 z-50 bg-black/50 hover:bg-red-500 w-12 h-12 rounded-full flex items-center justify-center transition border border-white/20 backdrop-blur-md text-white">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+            
+            <video id="main-video" class="video-cover" controls>
+                <!-- Las fuentes se inyectan con JS -->
+            </video>
+
+            <!-- Menú superior derecho para ajustes (Llenado de pantalla, Calidad) -->
+            <div class="absolute top-4 right-4 z-50 flex gap-2">
+                <button onclick="toggleFit()" class="bg-black/60 hover:bg-accent px-4 py-2 rounded-lg backdrop-blur-md transition text-sm font-bold border border-white/20" title="Ajustar/Llenar Pantalla">
+                    <i class="fa-solid fa-expand"></i> Pantalla Completa
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN (Tu GitHub JSON y TMDB)
+        // ==========================================
+        
+        // URL de tu JSON en GitHub (Usa la versión "Raw")
+        const GITHUB_JSON_URL = "https://raw.githubusercontent.com/dania123456789123456-del/Json/refs/heads/main/index.html"; 
+        
+        // Clave API de TMDB (Opcional, pero recomendada para sinopsis y fondos automáticos)
+        const TMDB_API_KEY = "3ba1079b7db0165cabfc8282f7e5d7ee"; // Pega tu API Key de TMDB aquí. Ej: "e5a7b..."
+
+        // ==========================================
+        // DATOS DE PRUEBA (Para que el diseño funcione ahora mismo)
+        // ==========================================
+        let appData = {
+            movies: [
+                {
+                    id: "m1", title: "El Proyecto Adam", tmdb_id: 696806, 
+                    poster: "https://image.tmdb.org/t/p/w500/wFjboE0aFZNbVOF05fzrka9Fqyx.jpg",
+                    backdrop: "https://image.tmdb.org/t/p/original/ewUqXnwiEKCHe4jfrm5-b6s.jpg",
+                    synopsis: "Tras un aterrizaje forzoso en 2022, el piloto de combate y viajero del tiempo Adam Reed forma equipo consigo mismo cuando tenía 12 años para salvar el futuro.",
+                    year: "2022", rating: "7.0",
+                    video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4"
+                },
+                {
+                    id: "m2", title: "Spider-Man: Sin Camino a Casa", tmdb_id: 634649,
+                    poster: "https://image.tmdb.org/t/p/w500/miZeVwYnFO6BqF9PudPAnw2ZOP3.jpg",
+                    backdrop: "https://image.tmdb.org/t/p/original/14QbnygCuTO0vl7CAFmZfroRqA.jpg",
+                    synopsis: "Por primera vez en la historia cinematográfica de Spider-Man, nuestro héroe, vecino y amigo es desenmascarado...",
+                    year: "2021", rating: "8.0",
+                    video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4"
+                },
+                {
+                    id: "m3", title: "Avatar: El sentido del agua", tmdb_id: 76600,
+                    poster: "https://image.tmdb.org/t/p/w500/kQfH0eCg1S6A2x8D0A1TjFj9N0n.jpg",
+                    backdrop: "https://image.tmdb.org/t/p/original/s16H6tpK2utvwDtzZ8Qy4qm5Emw.jpg",
+                    synopsis: "Ambientada más de una década después de los acontecimientos de la primera película, 'Avatar: The Way of Water' empieza contando la historia de la familia Sully.",
+                    year: "2022", rating: "7.6",
+                    video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4"
+                }
+            ],
+            series: [
+                {
+                    id: "s1", title: "Stranger Things", tmdb_id: 66732,
+                    poster: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8XBqOrQUM.jpg",
+                    backdrop: "https://image.tmdb.org/t/p/original/56v2KjBlU4XaOv9rVYEQypROD7P.jpg",
+                    synopsis: "A raíz de la desaparición de un niño, un pueblo desvela un misterio relacionado con experimentos secretos...",
+                    year: "2016", rating: "8.6",
+                    episodes: [
+                        { title: "Episodio 1: La desaparición", image: "https://image.tmdb.org/t/p/w500/A1HExwF25g7aB7UaVq1Vj2KkO8.jpg", video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4" },
+                        { title: "Episodio 2: La loca de la calle Maple", image: "https://image.tmdb.org/t/p/w500/2LhM2lR8w9Z5vE9pQv8P3B5gD.jpg", video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4" },
+                        { title: "Episodio 3: Holly, Jolly", image: "https://image.tmdb.org/t/p/w500/3oQ2D3A1R6nC9c4A5L1l1g.jpg", video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4" }
+                    ]
+                },
+                {
+                    id: "s2", title: "The Last of Us", tmdb_id: 100088,
+                    poster: "https://image.tmdb.org/t/p/w500/uKvVjHNqB5CwRQr4vB3r5e2z.jpg",
+                    backdrop: "https://image.tmdb.org/t/p/original/uDgy6hyPd82kRVc6OcdxX3rE.jpg",
+                    synopsis: "Veinte años después de que la civilización moderna fuera destruida. Joel, un curtido superviviente, es contratado para sacar de contrabando a Ellie...",
+                    year: "2023", rating: "8.8",
+                    episodes: [
+                        { title: "Ep 1: Cuando te pierdas en la oscuridad", image: "https://image.tmdb.org/t/p/w500/1xX2b7A9rM4N7v8g3G5E3H8O2.jpg", video_url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4" }
+                    ]
+                }
+            ]
+        };
+
+        let currentCategory = 'movies';
+        let currentItem = null;
+        let hls = null; // Instancia del reproductor M3U8
+
+        // ==========================================
+        // LÓGICA DE INTERFAZ Y NAVEGACIÓN
+        // ==========================================
+
+        function login() {
+            // Aquí cargaríamos el JSON desde GitHub
+            // fetch(GITHUB_JSON_URL).then(res=>res.json()).then(data => { appData = data; renderGrid(); })
+            // Por ahora usamos los datos de prueba:
+            switchLayer('layer-main');
+            renderGrid();
+        }
+
+        function switchLayer(layerId) {
+            document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
+            document.getElementById(layerId).classList.add('active');
+        }
+
+        function setCategory(cat) {
+            currentCategory = cat;
+            document.getElementById('btn-movies').className = `nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition ${cat === 'movies' ? 'bg-white/10 text-white font-semibold' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`;
+            document.getElementById('btn-series').className = `nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition ${cat === 'series' ? 'bg-white/10 text-white font-semibold' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`;
+            document.getElementById('category-title').innerText = cat === 'movies' ? 'Películas Recomendadas' : 'Series Recomendadas';
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('content-grid');
+            grid.innerHTML = '';
+            const items = appData[currentCategory];
+
+            items.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'poster-card cursor-pointer relative rounded-xl overflow-hidden aspect-[2/3] bg-gray-800';
+                card.onclick = () => openDetails(item);
+                
+                // Si tienes TMDB API KEY, aquí se podría actualizar el póster dinámicamente
+                card.innerHTML = `
+                    <img src="${item.poster || 'https://via.placeholder.com/500x750/1a0b2e/ffffff?text=Poster'}" alt="${item.title}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 to-transparent p-3 pt-10">
+                        <h3 class="font-bold text-sm md:text-base text-white truncate">${item.title}</h3>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ==========================================
+        // LÓGICA DE DETALLES Y TMDB
+        // ==========================================
+
+        async function openDetails(item) {
+            currentItem = item;
+            
+            // Intento de llenar datos con TMDB si hay API Key y falta información
+            if (TMDB_API_KEY && item.tmdb_id && (!item.synopsis || !item.backdrop)) {
+                try {
+                    const type = currentCategory === 'movies' ? 'movie' : 'tv';
+                    const res = await fetch(`https://api.themoviedb.org/3/${type}/${item.tmdb_id}?api_key=${TMDB_API_KEY}&language=es-ES`);
+                    const tmdbData = await res.json();
+                    item.synopsis = tmdbData.overview || item.synopsis;
+                    item.backdrop = `https://image.tmdb.org/t/p/original${tmdbData.backdrop_path}`;
+                    item.year = (tmdbData.release_date || tmdbData.first_air_date || "").split('-')[0];
+                    item.rating = tmdbData.vote_average ? tmdbData.vote_average.toFixed(1) : item.rating;
+                } catch (e) { console.log("Error TMDB", e); }
+            }
+
+            document.getElementById('detail-backdrop').src = item.backdrop || item.poster;
+            document.getElementById('detail-title').innerText = item.title;
+            document.getElementById('detail-synopsis').innerText = item.synopsis || 'Sin descripción disponible.';
+            document.getElementById('detail-year').innerText = item.year || 'N/A';
+            document.getElementById('detail-rating').innerHTML = `<i class="fa-solid fa-star"></i> ${item.rating || 'N/A'}`;
+
+            const playBtn = document.getElementById('btn-play-main');
+            const epsContainer = document.getElementById('episodes-container');
+            const epsList = document.getElementById('episodes-list');
+
+            if (currentCategory === 'movies') {
+                epsContainer.classList.add('hidden');
+                playBtn.classList.remove('hidden');
+                playBtn.onclick = () => playVideo(item.video_url);
+            } else {
+                playBtn.classList.add('hidden'); // Ocultar play general en series
+                epsContainer.classList.remove('hidden');
+                epsList.innerHTML = '';
+                
+                item.episodes.forEach(ep => {
+                    const epCard = document.createElement('div');
+                    epCard.className = 'flex-shrink-0 w-48 md:w-64 cursor-pointer hover:scale-105 transition transform snap-start relative group';
+                    epCard.onclick = () => playVideo(ep.video_url);
+                    epCard.innerHTML = `
+                        <div class="aspect-video bg-gray-800 rounded-lg overflow-hidden relative border border-white/10 group-hover:border-accent">
+                            <img src="${ep.image || item.backdrop}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition">
+                                <i class="fa-solid fa-play text-3xl text-white drop-shadow-md"></i>
+                            </div>
+                        </div>
+                        <h4 class="mt-2 text-sm font-semibold truncate text-gray-200 group-hover:text-white">${ep.title}</h4>
+                    `;
+                    epsList.appendChild(epCard);
+                });
+            }
+
+            switchLayer('layer-details');
+        }
+
+        function closeDetails() {
+            switchLayer('layer-main');
+        }
+
+        // ==========================================
+        // LÓGICA DEL REPRODUCTOR DE VIDEO
+        // ==========================================
+
+        function playVideo(url) {
+            if (!url) { alert("Video no disponible"); return; }
+            
+            const videoElement = document.getElementById('main-video');
+            videoElement.src = ""; // Limpiar anterior
+            
+            // Destruir instancia anterior de HLS si existe
+            if (hls) { hls.destroy(); }
+
+            // Si es un enlace M3U8 (IPTV / múltiples calidades)
+            if (url.includes('.m3u8')) {
+                if (Hls.isSupported()) {
+                    hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        videoElement.play();
+                    });
+                } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Soporte nativo para m3u8 (Safari/iOS)
+                    videoElement.src = url;
+                    videoElement.addEventListener('loadedmetadata', function() { videoElement.play(); });
+                }
+            } else {
+                // Video MP4 tradicional
+                videoElement.src = url;
+                videoElement.play();
+            }
+
+            switchLayer('layer-player');
+            
+            // Intentar forzar pantalla completa del navegador (opcional)
+            if (document.documentElement.requestFullscreen) {
+                document.getElementById('layer-player').requestFullscreen().catch(err => {});
+            }
+        }
+
+        function closePlayer() {
+            const videoElement = document.getElementById('main-video');
+            videoElement.pause();
+            videoElement.src = "";
+            if (hls) hls.destroy();
+            
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => {});
+            }
+            switchLayer('layer-details');
+        }
+
+        // Alternar entre llenar la pantalla (cover) o mostrar barras negras (contain)
+        function toggleFit() {
+            const videoElement = document.getElementById('main-video');
+            if (videoElement.classList.contains('video-cover')) {
+                videoElement.classList.remove('video-cover');
+                videoElement.classList.add('video-contain');
+            } else {
+                videoElement.classList.remove('video-contain');
+                videoElement.classList.add('video-cover');
+            }
+        }
+
+    </script>
+</body>
+</html>
