@@ -83,13 +83,9 @@
    🎛  ZOOM PARA CELULAR/WEBVIEW — AJUSTA ESTE ÚNICO NÚMERO
    ─────────────────────────────────────────────────────
    1.0 = tamaño normal
-   0.85 = 15% más pequeño  ← punto de partida para celular
+   0.85 = 15% más pequeño  ← punto de partida
    0.75 = 25% más pequeño
-   0.65 = 35% más pequeño
-   Baja o sube de a 0.05 hasta que se vea bien en tu teléfono.
-   
-   TAMBIÉN podés cambiar el initial-scale en la línea <meta name="viewport">
-   justo arriba del <style> — ese número hace lo mismo pero a nivel navegador.
+   Baja o sube de a 0.05 hasta que se vea bien.
 ═══════════════════════════════════════════════════════ */
 :root { --zoom-global: 0.85; }
 body { zoom: var(--zoom-global); }
@@ -223,15 +219,15 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
 .login-err { display:none; color:#f87171; font-size:12px; text-align:center; margin-top:10px; }
 
 /* ═══════════════ APP SHELL ═══════════════ */
-#L-app { display:flex; background:var(--ink); }
+#L-app { display:flex; background:var(--ink); height:100vh; overflow:hidden; }
 
 /* SIDEBAR */
 .sidebar {
-  width:var(--sw); min-width:var(--sw); height:100vh;
+  width:var(--sw); min-width:var(--sw); height:100%;
   background:rgba(13,12,30,0.98); backdrop-filter:blur(20px);
   border-right:1px solid var(--border);
   display:flex; flex-direction:column; padding:20px 0;
-  transition:transform .3s ease; z-index:100;
+  transition:transform .3s ease; z-index:100; overflow:hidden;
 }
 
 .s-logo { display:flex; align-items:center; gap:11px; padding:0 18px 26px; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:12px; }
@@ -276,14 +272,14 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
 .search-wrap input::placeholder { color:var(--mute); }
 
 /* HERO */
-.hero { position:relative; height:clamp(200px,34vw,360px); overflow:hidden; }
+.hero { position:relative; height:clamp(260px,45vw,480px); overflow:hidden; }
 .hero-bg { position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity .7s; }
 .hero-grad {
   position:absolute; inset:0;
   background: linear-gradient(to right, rgba(5,4,15,.96) 0%,rgba(5,4,15,.75) 38%,rgba(5,4,15,.1) 70%,transparent 100%),
               linear-gradient(to top, rgba(5,4,15,1) 0%, rgba(5,4,15,.4) 25%, transparent 55%);
 }
-.hero-body { position:relative; z-index:1; padding:0 18px 22px; height:100%; display:flex; flex-direction:column; justify-content:flex-end; max-width:62%; }
+.hero-body { position:relative; z-index:1; padding:0 28px 32px; height:100%; display:flex; flex-direction:column; justify-content:flex-end; max-width:58%; }
 .hero-tag { display:inline-flex; align-items:center; gap:5px; background:rgba(138,92,246,.22); border:1px solid rgba(138,92,246,.4); border-radius:20px; padding:3px 12px; font-size:11px; font-weight:700; color:var(--vl); margin-bottom:10px; font-family:'Outfit',sans-serif; letter-spacing:.5px; width:fit-content; }
 .hero-ttl { font-family:'Outfit',sans-serif; font-size:clamp(20px,3.2vw,40px); font-weight:900; line-height:1.1; margin-bottom:10px; text-shadow:0 2px 24px rgba(0,0,0,.5); }
 .hero-meta { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--mute); margin-bottom:10px; flex-wrap:wrap; }
@@ -318,11 +314,11 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
 /* POSTER GRID */
 .grid {
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(105px,1fr));
-  gap:10px;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:13px;
 }
-@media(min-width:600px){ .grid { grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); } }
-@media(min-width:1100px){ .grid { grid-template-columns:repeat(auto-fill,minmax(135px,1fr)); } }
+@media(min-width:600px){ .grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); } }
+@media(min-width:1100px){ .grid { grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); } }
 
 .pcard {
   border-radius:12px; overflow:hidden; cursor:pointer;
@@ -422,7 +418,7 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
 .det-dircast { margin-bottom:14px; font-size:12px; color:#a09ac0; line-height:1.75; }
 .det-dircast b { color:var(--vl); font-weight:700; margin-right:4px; }
 
-.det-syn { font-size:13.5px; line-height:1.72; color:#ccc8ee; margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+.det-syn { font-size:13.5px; line-height:1.72; color:#ccc8ee; margin-bottom:10px; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
 .det-acts { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
 
 .det-btn-play {
@@ -461,8 +457,7 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
 
 .eps-section {
   position:relative; z-index:2;
-  padding:0 36px 28px; max-width:1280px; margin:0 auto;
-  border-top:1px solid rgba(255,255,255,.07);
+  padding:0 36px 16px; max-width:1280px; margin:0 auto;
 }
 .eps-ttl { font-family:'Outfit',sans-serif; font-size:17px; font-weight:800; margin-bottom:14px; padding-top:24px; }
 
@@ -481,7 +476,7 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
 .reco-card-rt { position:absolute; top:5px; right:5px; font-size:9px; font-weight:700; background:rgba(0,0,0,.75); backdrop-filter:blur(6px); color:var(--gold); padding:2px 6px; border-radius:5px; }
 
 /* EPISODES */
-.eps-section { border-top:1px solid rgba(255,255,255,.07); padding-top:22px; }
+.eps-section { padding-top:8px; }
 .eps-ttl { font-family:'Outfit',sans-serif; font-size:16px; font-weight:800; margin-bottom:14px; }
 
 .seas-row { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:16px; }
@@ -824,7 +819,7 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
   .hero-body { max-width:100%; padding:0 16px 22px; }
   .c-section { padding:16px 14px; }
   .grid { grid-template-columns:repeat(auto-fill,minmax(105px,1fr)); gap:9px; }
-  .det-main-grid { grid-template-columns:1fr; padding:14px 16px 16px; gap:16px; min-height:unset; }
+  .det-main-grid { grid-template-columns:1fr; padding:48px 16px 22px; gap:20px; min-height:unset; }
   .det-info-col { max-width:100%; }
   .det-trailer-col { order:-1; }
   .det-reco-section { padding:18px 16px 28px; }
@@ -1053,6 +1048,13 @@ html,body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; back
       Volver
     </button>
     <div class="p-vid-title" id="pTitleTxt"></div>
+    <!-- Botones prev/next episodio (solo visibles en series) -->
+    <button id="epPrevBtn" onclick="playPrevEp()" title="Episodio anterior" style="display:none;background:rgba(255,255,255,.12);border:none;border-radius:8px;color:#fff;cursor:pointer;padding:6px 10px;font-family:Outfit,sans-serif;font-size:12px;font-weight:700;align-items:center;gap:5px;flex-shrink:0;">
+      <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg> Ant.
+    </button>
+    <button id="epNextBtn" onclick="playNextEp()" title="Siguiente episodio" style="display:none;background:rgba(138,92,246,.75);border:none;border-radius:8px;color:#fff;cursor:pointer;padding:6px 10px;font-family:Outfit,sans-serif;font-size:12px;font-weight:700;align-items:center;gap:5px;flex-shrink:0;">
+      Sig. <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2.5-6 5.5 3.9V8.1L8.5 12zM16 6h2v12h-2z"/></svg>
+    </button>
   </div>
 
   <!-- Popups -->
@@ -1168,9 +1170,14 @@ const S = {
   ctrlTimer: null,
   cache: {},
   searching: false,
-  splitAudioMode: false,   // true cuando el audio viene de URL separada del JSON
-  splitAudioUrl: null,     // URL del audio externo activo
-  audioOffset: 0,          // segundos de adelanto/retraso manual del audio externo
+  splitAudioMode: false,
+  splitAudioUrl: null,
+  audioOffset: 0,
+  // ── Contexto del reproductor ──
+  prevItem: null,         // item que estaba en detalle antes de abrir el player
+  currentSeries: null,    // id de la serie activa (null si es película)
+  currentSIdx: 0,         // índice de temporada activa
+  currentEIdx: 0,         // índice de episodio activo
 };
 
 /* ═══════════════════════════════════════
@@ -1562,7 +1569,11 @@ function playSeriesFirst(id){
   const season=s.seasons[0]; const ep=season?.episodes?.[0]; if(!ep) return;
   const url=(ep.qualities?.[0]?.url)||ep.url||'';
   const ttl=`${s.title} · S${season.season_number}E${ep.episode_number}: ${ep.title||'Episodio 1'}`;
+  S.currentSeries = id;
+  S.currentSIdx   = 0;
+  S.currentEIdx   = 0;
   openPlayer(url, ttl, ep.qualities||[], ep.subtitles||[], ep.audio||[], `ep_${id}_0_0`);
+  updEpNavBtns();
 }
 
 async function renderDetReco(td, type, currentId){
@@ -1700,10 +1711,15 @@ function playEpisode(seriesId, sIdx, eIdx){
   const ep     = season?.episodes[eIdx]; if(!ep) return;
   const url    = (ep.qualities?.[0]?.url)||ep.url||'';
   const ttl    = `${s.title} · S${season.season_number}E${ep.episode_number}: ${ep.title||'Episodio'}`;
+  S.currentSeries = seriesId;
+  S.currentSIdx   = sIdx;
+  S.currentEIdx   = eIdx;
   openPlayer(url, ttl, ep.qualities||[], ep.subtitles||[], ep.audio||[], `ep_${seriesId}_${sIdx}_${eIdx}`);
+  updEpNavBtns();
 }
 
 function openPlayer(url, title, qualities, subtitles, audioTracks, saveKey){
+  S.prevItem = S.item ? {...S.item} : null;  // guarda para el botón Volver
   closeDetail();
   S.currentSaveKey = saveKey||null;
   show('L-player');
@@ -2249,11 +2265,18 @@ function closePlayer(){
   fr.src=''; fr.style.display='none';
   pl.classList.remove('drive-mode','drive-fill');
   Sub.stop();
-  disableSplitAudio();   // ← limpiar audio externo
+  disableSplitAudio();
   if(S.hls){ S.hls.destroy(); S.hls=null; }
   if(document.fullscreenElement) document.exitFullscreen();
   screen.orientation?.unlock?.();
   hide('L-player'); clearTimeout(S.ctrlTimer);
+  S.currentSeries = null;
+  // Volver a la sinopsis si se vino desde un detalle
+  if(S.prevItem){
+    const pi = S.prevItem;
+    S.prevItem = null;
+    openDetail(pi.id, pi.type);
+  }
 }
 
 /* ─ Controls ─ */
@@ -2431,7 +2454,12 @@ document.addEventListener('touchend',()=>{ dragging=false; });
   });
   v.addEventListener('canplay',()=>$('pSpin').classList.remove('on'));
 
-  v.addEventListener('ended',updPlayBtn);
+  v.addEventListener('ended',()=>{
+    updPlayBtn();
+    if(S.currentSeries){
+      setTimeout(()=>{ playNextEp(); }, 1200);
+    }
+  });
 
   // Click area
   pl.addEventListener('click',e=>{
@@ -2454,6 +2482,53 @@ document.addEventListener('touchend',()=>{ dragging=false; });
     if(e.key==='Escape'&&!document.fullscreenElement) closePlayer();
   });
 })();
+
+/* ═══════════════════════════════════════
+   NAVEGACIÓN DE EPISODIOS
+═══════════════════════════════════════ */
+function updEpNavBtns(){
+  const isSeries = !!S.currentSeries;
+  const prevBtn = $('epPrevBtn');
+  const nextBtn = $('epNextBtn');
+  if(!prevBtn || !nextBtn) return;
+  if(!isSeries){ prevBtn.style.display='none'; nextBtn.style.display='none'; return; }
+  prevBtn.style.display='flex';
+  nextBtn.style.display='flex';
+  const s = S.series.find(x=>x.id==S.currentSeries);
+  if(!s) return;
+  // Calcular si hay ep anterior / siguiente
+  const hasPrev = S.currentEIdx > 0 || S.currentSIdx > 0;
+  const season  = s.seasons[S.currentSIdx];
+  const hasNext = S.currentEIdx < (season?.episodes?.length||1)-1 || S.currentSIdx < s.seasons.length-1;
+  prevBtn.disabled = !hasPrev;
+  prevBtn.style.opacity = hasPrev ? '1' : '0.35';
+  nextBtn.disabled = !hasNext;
+  nextBtn.style.opacity = hasNext ? '1' : '0.35';
+}
+
+function playNextEp(){
+  if(!S.currentSeries) return;
+  const s = S.series.find(x=>x.id==S.currentSeries); if(!s) return;
+  const season = s.seasons[S.currentSIdx];
+  if(S.currentEIdx < (season?.episodes?.length||0)-1){
+    playEpisode(S.currentSeries, S.currentSIdx, S.currentEIdx+1);
+  } else if(S.currentSIdx < s.seasons.length-1){
+    playEpisode(S.currentSeries, S.currentSIdx+1, 0);
+  } else {
+    toast('✅ Has terminado todos los episodios');
+  }
+}
+
+function playPrevEp(){
+  if(!S.currentSeries) return;
+  if(S.currentEIdx > 0){
+    playEpisode(S.currentSeries, S.currentSIdx, S.currentEIdx-1);
+  } else if(S.currentSIdx > 0){
+    const s = S.series.find(x=>x.id==S.currentSeries); if(!s) return;
+    const prevSeason = s.seasons[S.currentSIdx-1];
+    playEpisode(S.currentSeries, S.currentSIdx-1, (prevSeason?.episodes?.length||1)-1);
+  }
+}
 
 function fmt(s){
   if(!s||isNaN(s)) return '0:00';
