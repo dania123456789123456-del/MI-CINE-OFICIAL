@@ -2477,7 +2477,6 @@ function showJsonHelp(){
    REPRODUCTOR EXTERNO
 ═══════════════════════════════════════ */
 function getCurrentVideoUrl(){
-  // Si hay HLS, devuelve la URL fuente del manifiesto
   if(S.hls && S.hls.url) return S.hls.url;
   const v=$('vid');
   return v.src || '';
@@ -2491,74 +2490,70 @@ function buildExtMenu(){
   const url = getCurrentVideoUrl();
   const el = $('extList');
   if(!url){
-    el.innerHTML=`<div class="ext-item"><div><div class="ext-name" style="color:var(--mute)">Sin URL disponible</div></div></div>`;
+    el.innerHTML=`<div class="ext-item"><div class="ext-name" style="color:var(--mute);padding:10px 14px;">Sin URL disponible</div></div>`;
     return;
   }
 
-  const enc = encodeURIComponent(url);
-  const isAndroid_ = isAndroid();
-  const isIOS_ = isIOS();
-  const isMob = isMobile();
-
+  const isAnd = isAndroid();
+  const isIos = isIOS();
   let html = '';
 
-  // ── VLC ──
-  if(isAndroid_){
-    // Intent de Android para VLC
-    const vlcIntent = `intent://${url.replace(/^https?:\/\//,'')}#Intent;scheme=${url.startsWith('https')?'https':'http'};package=org.videolan.vlc;end`;
-    html += extItem('🎬','VLC','Android','javascript:openExtUrl("'+escQ(vlcIntent)+'")');
-  } else if(isIOS_){
-    html += extItem('🎬','VLC','iPhone / iPad','javascript:openExtUrl("vlc://'+escQ(url)+'")');
+  if(isAnd){
+    // ── Android: usar window.location.href con intent:// ──
+    // VLC — intent directo (el más compatible)
+    const vlcIntent = buildIntent(url, 'org.videolan.vlc');
+    html += extItem('🎬','VLC','Toca para abrir en VLC',   `openIntent(${JSON.stringify(vlcIntent)})`);
+
+    // MX Player Free
+    const mxIntent  = buildIntent(url, 'com.mxtech.videoplayer.ad');
+    html += extItem('▶️','MX Player','Toca para abrir en MX Player', `openIntent(${JSON.stringify(mxIntent)})`);
+
+    // MX Player Pro
+    const mxPIntent = buildIntent(url, 'com.mxtech.videoplayer.pro');
+    html += extItem('⭐','MX Player Pro','Toca para abrir en MX Pro', `openIntent(${JSON.stringify(mxPIntent)})`);
+
+    // Just Player / Otros — fallback con vlc://
+    html += extItem('📡','Abrir URL del video','Pega el link en tu app favorita',`copyVideoUrl()`);
+
+  } else if(isIos){
+    html += extItem('🎬','VLC',    'iPhone / iPad', `openIntent("vlc://"+${JSON.stringify(url)})`);
+    html += extItem('▶️','nPlayer','iPhone / iPad', `openIntent("nplayer-"+${JSON.stringify(url)})`);
+    html += extItem('📺','Infuse', 'iPhone / iPad', `openIntent("infuse://x-callback-url/play?url="+encodeURIComponent(${JSON.stringify(url)}))`);
+
   } else {
-    // PC: protocolo vlc:// (requiere VLC instalado con handler)
-    html += extItem('🎬','VLC','Escritorio (requiere VLC)','javascript:openExtUrl("vlc://'+escQ(url)+'")');
+    // ── PC ──
+    html += extItem('🎬','VLC (escritorio)','Abre si VLC está instalado', `openIntent("vlc://"+${JSON.stringify(url)})`);
+    html += extItem('🌐','Abrir en nueva pestaña','Para copiar o arrastrar al player', `window.open(${JSON.stringify(url)},'_blank')`);
   }
 
-  // ── MX Player ── (solo Android)
-  if(isAndroid_){
-    const mxFree = `intent://${url.replace(/^https?:\/\//,'')}#Intent;scheme=${url.startsWith('https')?'https':'http'};package=com.mxtech.videoplayer.ad;end`;
-    const mxPro  = `intent://${url.replace(/^https?:\/\//,'')}#Intent;scheme=${url.startsWith('https')?'https':'http'};package=com.mxtech.videoplayer.pro;end`;
-    html += extItem('▶️','MX Player','Android (gratis)','javascript:openExtUrl("'+escQ(mxFree)+'")');
-    html += extItem('⭐','MX Player Pro','Android (pro)','javascript:openExtUrl("'+escQ(mxPro)+'")');
-  }
-
-  // ── nPlayer (iOS) ──
-  if(isIOS_){
-    html += extItem('▶️','nPlayer','iPhone / iPad','javascript:openExtUrl("nplayer-'+escQ(url)+'")');
-    html += extItem('📺','Infuse','iPhone / iPad','javascript:openExtUrl("infuse://x-callback-url/play?url='+enc+'")');
-  }
-
-  // ── Separador ──
   html += `<div class="ext-sep"></div>`;
-
-  // ── Copiar URL ── (universal)
-  html += extItem('📋','Copiar URL del video','Para pegar en cualquier app','javascript:copyVideoUrl()');
-
-  // ── Abrir en nueva pestaña ── (PC principalmente)
-  if(!isMob){
-    html += extItem('🌐','Abrir URL en pestaña','Arrastra al reproductor del SO','javascript:window.open('+JSON.stringify(url)+')');
-  }
+  html += extItem('📋','Copiar URL','Pegar en cualquier reproductor', `copyVideoUrl()`);
 
   el.innerHTML = html;
 }
 
-function extItem(ico, name, desc, href){
-  return `<div class="ext-item" onclick="${href};closePopups()">
+/* Construye un intent:// de Android con fallback */
+function buildIntent(url, pkg){
+  // Quitar el scheme del url para el intent
+  const bare = url.replace(/^https?:\/\//i,'');
+  const scheme = url.startsWith('https') ? 'https' : 'http';
+  return `intent://${bare}#Intent;scheme=${scheme};package=${pkg};end`;
+}
+
+function extItem(ico, name, desc, onclick){
+  return `<div class="ext-item" onclick="${onclick};closePopups();resetCtrlTimer()">
     <div class="ext-ico">${ico}</div>
     <div><div class="ext-name">${name}</div><div class="ext-desc">${desc}</div></div>
   </div>`;
 }
 
-function escQ(s){ return s.replace(/"/g,'&quot;'); }
-
-function openExtUrl(url){
-  // Intentar abrir sin abrir nueva pestaña (intents de Android)
-  const a = document.createElement('a');
-  a.href = url;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ document.body.removeChild(a); }, 500);
+/* Abre un URL/intent usando window.location — funciona en WebView Android */
+function openIntent(url){
+  try{
+    window.location.href = url;
+  }catch(e){
+    toast('⚠ No se pudo abrir: '+e.message);
+  }
 }
 
 async function copyVideoUrl(){
@@ -2568,13 +2563,13 @@ async function copyVideoUrl(){
     await navigator.clipboard.writeText(url);
     toast('📋 URL copiada al portapapeles');
   }catch(e){
-    // Fallback para WebView sin permisos
+    // Fallback para WebView sin permiso clipboard
     const ta = document.createElement('textarea');
-    ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    document.execCommand('copy');
+    ta.value = url; ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand('copy'); toast('📋 URL copiada al portapapeles'); }
+    catch(e2){ toast('⚠ Copia manual: '+url.substring(0,40)+'…'); }
     document.body.removeChild(ta);
-    toast('📋 URL copiada al portapapeles');
   }
 }
 
