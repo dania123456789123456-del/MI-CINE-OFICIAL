@@ -452,7 +452,7 @@ body { overflow:hidden; font-family:'DM Sans',sans-serif; background:var(--ink);
   background:#000; position:relative;
   box-shadow:0 24px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(138,92,246,.22);
 }
-.det-trailer-vid { width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+.det-trailer-vid { width:100%; height:100%; object-fit:fill; display:block; background:#000; }
 .det-trailer-ph {
   position:absolute; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center;
@@ -1336,7 +1336,7 @@ async function tmdbSeason(seriesId, seasonNum){
 async function renderHome(){
   const area = $('contentArea');
   const allItems = [...S.movies.map(m=>({...m,type:'movie'})), ...S.series.map(s=>({...s,type:'series'}))];
-  const feat = allItems.length ? allItems[Math.floor(Math.random()*Math.min(4,allItems.length))] : null;
+  const feat = allItems.length ? allItems[Math.floor(Math.random()*allItems.length)] : null;
   
   let heroHtml = '';
   if(feat){
@@ -1380,8 +1380,8 @@ async function renderHome(){
     <div class="grid" id="grid-hser"></div>
   </div>`;
 
-  renderPosters('grid-hmov', S.movies.slice(0,14), 'movie');
-  renderPosters('grid-hser', S.series.slice(0,10), 'series');
+  renderPosters('grid-hmov', S.movies, 'movie');
+  renderPosters('grid-hser', S.series, 'series');
 }
 
 /* ═══════════════════════════════════════
@@ -1489,7 +1489,7 @@ async function openDetail(id, type){
     } else {
       const dfr2=$('detTrailerFr'); if(dfr2){dfr2.src='';dfr2.style.display='none';}
       dtv.style.display='block';
-      dtv.src=item.trailer; dtv.muted=true; dtv.load(); dtv.play().catch(()=>{});
+      dtv.src=item.trailer; dtv.muted=true; dtv.loop=true; dtv.load(); dtv.play().catch(()=>{});
     }
   } else {
     const dfr3=$('detTrailerFr'); if(dfr3){dfr3.src='';dfr3.style.display='none';}
@@ -1797,14 +1797,14 @@ function openPlayer(url, title, qualities, subtitles, audioTracks, saveKey){
   if(!url){ toast('⚠ URL no configurada en el JSON'); return; }
   const bestUrl = (qualities && qualities.length) ? (qualities[0].url || url) : url;
 
-  /* ── KODULAR WebView: envía al ActivityStarter de Kodular ── */
+  /* ── KODULAR WebView: envía al ActivityStarter ── */
   if(window.AppInventor){
     window.AppInventor.setWebViewString('VLC:' + bestUrl);
     toast('▶ Abriendo en VLC…');
     return;
   }
 
-  /* ── Fallback: reproductor interno (por si se abre en otro lado) ── */
+  /* ── Fallback reproductor interno ── */
   S.prevItem = S.item ? {...S.item} : null;
   closeDetail();
   S.currentSaveKey = saveKey||null;
