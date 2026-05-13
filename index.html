@@ -2038,19 +2038,18 @@ function playSeriesFirst(id){
 
 async function renderDetReco(td, type, currentId){
   const rc=$('detReco'); if(!rc) return;
-  let items=[];
-  // Use local catalog as recommendations
-  const pool = type==='movie'?S.movies:S.series;
-  items = pool.filter(x=>x.id!=currentId).slice(0,14);
-  if(!items.length){ const other=type==='movie'?S.series:S.movies; items=other.slice(0,10); }
+  // Solo del mismo tipo que el item actual, en orden aleatorio
+  const pool = (type==='movie' ? S.movies : S.series).filter(x=>x.id!=currentId);
+  const items = pool.slice().sort(()=>Math.random()-0.5).slice(0,14);
   if(!items.length) return;
-  const itype=type==='movie'?'movie':'series';
   rc.innerHTML=`<div class="det-reco-section"><div class="det-reco-title">🎬 Quizás te guste</div><div class="reco-scroll" id="recoScroll"></div></div>`;
   const sc=$('recoScroll'); if(!sc) return;
   for(const item of items){
+    const itemType = type;
+    const tmdbType = itemType==='movie'?'movie':'tv';
     let poster=item.poster||'', rt=item.rating||'';
     if(!poster && CFG.tmdbKey && item.tmdb_id){
-      const td2=await tmdb(itype==='movie'?'movie':'tv', item.tmdb_id);
+      const td2=await tmdb(tmdbType, item.tmdb_id);
       if(td2){ poster=td2.poster_path?CFG.imgW500+td2.poster_path:''; if(!rt&&td2.vote_average) rt=td2.vote_average.toFixed(1); }
     }
     const card=document.createElement('div');
@@ -2060,7 +2059,7 @@ async function renderDetReco(td, type, currentId){
         :`<div style="width:100%;aspect-ratio:2/3;background:linear-gradient(135deg,#1b1935,#2e1065);display:flex;align-items:center;justify-content:center;font-size:12px;color:#c4b5fd;padding:8px;text-align:center">${item.title}</div>`}
       ${rt?`<div class="reco-card-rt">★${rt}</div>`:''}
       <div class="reco-card-label">${item.title}</div>`;
-    card.onclick=()=>openDetail(item.id, itype);
+    card.onclick=()=>openDetail(item.id, itemType);
     sc.appendChild(card);
   }
 }
@@ -2235,6 +2234,7 @@ async function loadSeasonEps(series, sIdx, td){
       </div>
     </div>`;
   }).join('');
+  scroll.scrollLeft = 0;
 }
 
 /* ═══════════════════════════════════════
